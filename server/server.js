@@ -7,7 +7,7 @@ const app = express()
 const PORT = process.env.Port || 3001;
 
 app.use(express.json())
-app.use(express.static('../frontend/build'))
+app.use((express.static('../frontend/build')))
 app.use(cors())
 
 
