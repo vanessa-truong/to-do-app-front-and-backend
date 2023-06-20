@@ -1,83 +1,77 @@
-import './App.css';
+import "./App.css";
 import React, { useState, useEffect } from "react";
-import TodoForm from './components/TodoForm';
-import Todo from './components/Todo';
+import axios from "axios";
 
 function App() {
-
   const [todos, setTodos] = useState([]);
   const [value, setValue] = useState("");
+  const [errors, setErrors] = useState({});
 
-
-    const addTodo = (todo) => {
-      const newTodos = [...todos, todo]
-      setTodos(newTodos)
+  useEffect(() => {
+    const getData = async () => {
+      const resp = await axios.get("/todos");
+      console.log(resp);
+      setTodos(resp.data);
     };
+    getData();
+  }, []);
 
-    const deleteTodo = (index) => {
-      fetch("http://localhost:3001/todos/" + todos[index].id, {
-        method: "DELETE"
-      })
-      
-      const newTodos = [...todos]
-      newTodos.splice(index, 1)
-      setTodos(newTodos);
-    }
-
-    useEffect(() => {
-      const getData = async () => {
-        const result = await fetch('http://localhost:3001/todos/', {})
-        const data = await result.json();
-        setTodos(data)
+  const handleDelete = async (id) => {
+    try {
+      const resp = await axios.delete(`/todos/${id}`);
+      if (resp.data.success) {
+        setTodos((prevState) => prevState.filter((todo) => todo._id !== id));
       }
-      getData()
-    }, [])
-
-    //Hinzufügenn und in der Datenbak speichern
-    const handleSubmit = (e) => {
-      e.preventDefault()
-      addTodo({
-        text: value,
-        complete: false
-      })
-
-      fetch("http://localhost:3001/todos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          text: value,
-          complete: false
-        })
-      })
-      setValue('')
+    } catch (error) {
+      console.log(error);
     }
-
-
-
+  };
 
   return (
     <div className="App">
-      <h1>Todo List</h1>
-      <TodoForm  
-      value={value} 
-      setValue={setValue}
-      handleSubmit={handleSubmit}
-      />
-      <div>
-      {todos.map((todo, index) => {
-        return(
-          <Todo
-          todo={todo}
-          key={index}
-          index={index}
-          // wenn man die delete möglichkeit mit einbauen will dann besser key={todo.title} nehmen weil durc das löschen der index durcheinander gebracht wird 
-          deleteTodo={deleteTodo}
-          />
-        )
+      {/* TodoForm */}
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          console.log(e);
+          // Form field values
+          const todo = e.currentTarget[0].value;
+
+          //Wir kriegen unsere datem vom backend
+          //error oder newEntry
+
+          const resp = await axios.post("/todos", { todo });
+
+          const { newEntry, errors } = resp.data;
+
+          if (newEntry) {
+            console.log(resp.data);
+            setTodos((prevState) => [newEntry, ...prevState]);
+          }
+          if (errors) {
+            //Wenn es einen Fehler gibt setzen wir diesen State auf error
+            setErrors(errors);
+          }
+        }}
+      >
+        <input
+          type="text"
+          className="input"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="give me some todo"
+        />
+        <button type="submit">Add</button>
+      </form>
+      {todos.map((ele) => {
+        return (
+          <div key={ele._id}>
+            <input type="checkbox" name="checkbox" id="checkbox" />
+            <p>{ele.todo}</p>
+            <button onClick={() => handleDelete(ele._id)}>Delete</button>
+          </div>
+        );
       })}
-      </div>
     </div>
   );
 }
